@@ -54,7 +54,7 @@ sudo a2enmod ssl proxy proxy_http headers dav dav_svn authz_svn authnz_external
 cd /opt/claudeconnect
 python3 -m venv venv
 source venv/bin/activate
-pip install flask authlib httpx cryptography
+pip install flask authlib httpx cryptography requests
 ```
 
 ## Environment Variables

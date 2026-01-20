@@ -117,7 +117,7 @@ log "Setting up Python virtual environment..."
 cd /opt/claudeconnect
 sudo -u ubuntu python3 -m venv venv
 sudo -u ubuntu /opt/claudeconnect/venv/bin/pip install --upgrade pip
-sudo -u ubuntu /opt/claudeconnect/venv/bin/pip install flask authlib httpx cryptography
+sudo -u ubuntu /opt/claudeconnect/venv/bin/pip install flask authlib httpx cryptography requests
 
 # =============================================================================
 # 5. Store Fernet Key
