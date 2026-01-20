@@ -59,12 +59,20 @@ pip install flask authlib httpx cryptography
 
 ## Environment Variables
 
-Copy `.env.example` and fill in:
+Copy `.env.example` to `.env` and fill in your credentials:
 
+```bash
+cp .env.example .env
+# Edit .env with your values
+```
+
+Required variables:
 - `GOOGLE_CLIENT_ID` - Google OAuth client ID
 - `GOOGLE_CLIENT_SECRET` - Google OAuth client secret
-- `FLASK_SECRET_KEY` - Random 32-byte hex string
-- `FERNET_KEY` - Generate with: `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`
+- `FLASK_SECRET_KEY` - Random 32-byte hex (`python3 -c "import secrets; print(secrets.token_hex(32))"`)
+- `FERNET_KEY` - Fernet encryption key (`python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`)
+
+The setup script reads from `.env` automatically.
 
 ## Deployment
 

@@ -8,8 +8,8 @@ Before starting, you'll need:
 
 1. **AWS Account** with EC2 access
 2. **Domain** (claudeconnect.io) that you control
-3. **Google Cloud Project** with OAuth 2.0 credentials
-4. **SSH Key Pair** for EC2 access
+3. **SSH Key Pair** for EC2 access
+4. **Google Cloud Project** with OAuth 2.0 credentials (see Step 4)
 
 ## Step 1: Create EC2 Instance
 
@@ -68,7 +68,7 @@ Wait for DNS propagation (check with `dig claudeconnect.io`).
    - Application type: Web application
    - Name: Claude Connect Server
    - Authorized redirect URIs: `https://claudeconnect.io/callback`
-6. Save the **Client ID** and **Client Secret**
+6. Save the **Client ID** and **Client Secret** for the `.env` file
 
 ## Step 5: SSH to Instance
 
@@ -80,30 +80,33 @@ chmod 400 ~/path/to/your-key.pem
 ssh -i ~/path/to/your-key.pem ubuntu@<your-instance-ip>
 ```
 
-## Step 6: Clone and Run Setup
+## Step 6: Clone and Configure
 
 ```bash
 # Clone the repo
 git clone https://github.com/bstadt/cc_server.git
 cd cc_server
 
-# Make setup script executable
-chmod +x scripts/setup.sh
+# Create .env from template and fill in credentials
+cp .env.example .env
+nano .env  # Add your Google OAuth credentials, generate Flask/Fernet keys
 
-# Run setup (will prompt for OAuth credentials)
+# Make setup script executable and run
+chmod +x scripts/setup.sh
 sudo ./scripts/setup.sh
 ```
 
 The script will:
-1. Install all system packages
-2. Create directory structure
-3. Copy application files
-4. Set up Python virtual environment
-5. Generate Fernet key for SVN tokens
-6. Configure Apache (HTTP first)
-7. Obtain SSL certificate via Certbot
-8. Install full Apache config with SSL
-9. Configure and start systemd service
+1. Load credentials from `.env` (validates all required vars)
+2. Install all system packages
+3. Create directory structure
+4. Copy application files
+5. Set up Python virtual environment
+6. Store Fernet key
+7. Configure Apache (HTTP first for Certbot)
+8. Obtain SSL certificate via Certbot
+9. Install full Apache config with SSL
+10. Configure and start systemd service
 
 ## Step 7: Verify Deployment
 

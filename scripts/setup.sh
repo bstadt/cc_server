@@ -12,7 +12,6 @@
 # Prerequisites:
 #   - Ubuntu 22.04 LTS (tested on t3.small)
 #   - Domain pointing to instance IP (for SSL)
-#   - Google OAuth credentials ready
 #
 
 set -e  # Exit on error
@@ -38,6 +37,27 @@ REPO_DIR="$(dirname "$SCRIPT_DIR")"
 
 log "Starting Claude Connect server setup..."
 log "Repo directory: $REPO_DIR"
+
+# =============================================================================
+# 0. Load Environment Variables
+# =============================================================================
+ENV_FILE="$REPO_DIR/.env"
+if [ ! -f "$ENV_FILE" ]; then
+    error ".env file not found at $ENV_FILE"
+fi
+
+log "Loading environment variables from .env..."
+set -a  # Export all variables
+source "$ENV_FILE"
+set +a
+
+# Validate required variables
+[ -z "$GOOGLE_CLIENT_ID" ] && error "GOOGLE_CLIENT_ID not set in .env"
+[ -z "$GOOGLE_CLIENT_SECRET" ] && error "GOOGLE_CLIENT_SECRET not set in .env"
+[ -z "$FLASK_SECRET_KEY" ] && error "FLASK_SECRET_KEY not set in .env"
+[ -z "$FERNET_KEY" ] && error "FERNET_KEY not set in .env"
+
+log "Environment variables loaded successfully"
 
 # =============================================================================
 # 1. Install System Packages
@@ -100,19 +120,15 @@ sudo -u ubuntu /opt/claudeconnect/venv/bin/pip install --upgrade pip
 sudo -u ubuntu /opt/claudeconnect/venv/bin/pip install flask authlib httpx cryptography
 
 # =============================================================================
-# 5. Generate Fernet Key (if not exists)
+# 5. Store Fernet Key
 # =============================================================================
-if [ ! -f /opt/claudeconnect/fernet.key ]; then
-    log "Generating Fernet key..."
-    /opt/claudeconnect/venv/bin/python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())" > /opt/claudeconnect/fernet.key
-    chmod 600 /opt/claudeconnect/fernet.key
-    chown root:root /opt/claudeconnect/fernet.key
-    warn "Fernet key generated at /opt/claudeconnect/fernet.key"
-    warn "SAVE THIS KEY - you'll need it for the systemd service and Apache config"
-    cat /opt/claudeconnect/fernet.key
-else
-    log "Fernet key already exists"
-fi
+log "Storing Fernet key..."
+
+echo "$FERNET_KEY" > /opt/claudeconnect/fernet.key
+chmod 600 /opt/claudeconnect/fernet.key
+chown root:root /opt/claudeconnect/fernet.key
+
+log "Fernet key stored at /opt/claudeconnect/fernet.key"
 
 # =============================================================================
 # 6. Configure Apache
@@ -175,9 +191,6 @@ fi
 # 8. Install Full Apache Config
 # =============================================================================
 log "Installing full Apache configuration..."
-
-# Read Fernet key
-FERNET_KEY=$(cat /opt/claudeconnect/fernet.key)
 
 # Create the full config with SSL
 cat > /etc/apache2/sites-available/claudeconnect.conf << APACHECONF
@@ -249,23 +262,6 @@ a2ensite claudeconnect.conf
 # =============================================================================
 log "Configuring systemd service..."
 
-echo ""
-warn "=============================================="
-warn "GOOGLE OAUTH CREDENTIALS"
-warn "=============================================="
-echo ""
-echo "You need Google OAuth credentials from Google Cloud Console:"
-echo "  1. Go to https://console.cloud.google.com/apis/credentials"
-echo "  2. Create OAuth 2.0 Client ID (Web application)"
-echo "  3. Add authorized redirect URI: https://claudeconnect.io/callback"
-echo ""
-
-read -p "Enter GOOGLE_CLIENT_ID: " GOOGLE_CLIENT_ID
-read -p "Enter GOOGLE_CLIENT_SECRET: " GOOGLE_CLIENT_SECRET
-
-# Generate Flask secret key
-FLASK_SECRET_KEY=$(python3 -c "import secrets; print(secrets.token_hex(32))")
-
 # Create systemd service
 cat > /etc/systemd/system/claudeconnect.service << SYSTEMD
 [Unit]
@@ -323,6 +319,4 @@ echo "  - Flask app:    /opt/claudeconnect/app.py"
 echo "  - Apache conf:  /etc/apache2/sites-available/claudeconnect.conf"
 echo "  - Systemd:      /etc/systemd/system/claudeconnect.service"
 echo "  - SVN repos:    /var/svn/repos/"
-echo ""
-warn "IMPORTANT: Save your Fernet key somewhere safe!"
 echo ""
