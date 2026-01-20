@@ -213,9 +213,9 @@ def create_svn_repo(repo_name: str, email: str) -> tuple[bool, str]:
         return True, "Repo already exists"
 
     try:
-        # Create the repository
+        # Create the repository (needs sudo since /var/svn/repos is owned by www-data)
         result = subprocess.run(
-            ["svnadmin", "create", str(repo_path)],
+            ["sudo", "svnadmin", "create", str(repo_path)],
             capture_output=True,
             text=True,
         )
@@ -223,15 +223,15 @@ def create_svn_repo(repo_name: str, email: str) -> tuple[bool, str]:
         if result.returncode != 0:
             return False, f"svnadmin create failed: {result.stderr}"
 
-        # Create default authz file BEFORE chown
-        # Use force=True to replace svnadmin's default template
-        ensure_authz(repo_path, email, force=True)
-
-        # Set ownership to www-data (Apache user) AFTER writing authz
+        # Set ownership to www-data (Apache user)
         subprocess.run(
             ["sudo", "chown", "-R", "www-data:www-data", str(repo_path)],
             check=True,
         )
+
+        # Create default authz file (use_sudo=True since repo is now owned by www-data)
+        # Use force=True to replace svnadmin's default template
+        ensure_authz(repo_path, email, use_sudo=True, force=True)
 
         return True, "Repo created successfully"
 
