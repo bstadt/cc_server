@@ -130,7 +130,7 @@ log "Storing Fernet key..."
 
 echo "$FERNET_KEY" > /opt/claudeconnect/fernet.key
 chmod 600 /opt/claudeconnect/fernet.key
-chown root:root /opt/claudeconnect/fernet.key
+chown www-data:www-data /opt/claudeconnect/fernet.key  # www-data needs to read for svn-auth.py
 
 log "Fernet key stored at /opt/claudeconnect/fernet.key"
 
@@ -245,7 +245,7 @@ cat > /etc/apache2/sites-available/claudeconnect.conf << APACHECONF
         DAV svn
         SVNParentPath /var/svn/repos
         SVNPathAuthz short_circuit
-        AuthzSVNReposRelativeAccessFile conf/authz
+        AuthzSVNReposRelativeAccessFile authz
 
         AuthType Basic
         AuthName "Claude Connect SVN"
