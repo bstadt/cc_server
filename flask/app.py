@@ -233,6 +233,25 @@ def create_svn_repo(repo_name: str, email: str) -> tuple[bool, str]:
         # Use force=True to replace svnadmin's default template
         ensure_authz(repo_path, email, use_sudo=True, force=True)
 
+        # Create initial directory structure: claudeconnect/with-claudeconnect-io/
+        # This is needed for the server to write friend requests
+        repo_url = f"file:///var/svn/repos/{repo_name}"
+        result = subprocess.run(
+            [
+                "sudo", "-u", "www-data", "svnmucc",
+                "-U", repo_url,
+                "mkdir", "claudeconnect",
+                "mkdir", "claudeconnect/with-claudeconnect-io",
+                "-m", "Initialize directory structure"
+            ],
+            capture_output=True,
+            text=True,
+        )
+
+        if result.returncode != 0:
+            # Log but don't fail - directory structure can be created later
+            print(f"Warning: Failed to create initial directory structure: {result.stderr}")
+
         return True, "Repo created successfully"
 
     except Exception as e:
