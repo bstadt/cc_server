@@ -1,7 +1,12 @@
-"""Claude Connect Flask application.
+"""Claude Connect Flask application (v2).
 
 Handles OAuth flow and repo management.
-Friending is handled entirely via SVN (friend_requests folder) and authz files.
+
+v2 changes from v1:
+- Friend requests written to claudeconnect/with-claudeconnect-io/friend-request-<email>.md
+- Friend request format is markdown instead of JSON
+- authz: with-claudeconnect-io is owner-only writable (server uses admin bypass)
+- Removed custom "message" field in friend requests (security: prevents prompt injection)
 """
 
 import os
@@ -146,12 +151,16 @@ def verify_id_token(id_token: str) -> tuple[bool, str]:
 
 
 def generate_authz_content(email: str) -> str:
-    """Generate initial authz file content for a new user."""
+    """Generate initial authz file content for a new user.
+
+    v2 format: Owner has rw on root and with-claudeconnect-io folder.
+    Server writes friend requests to with-claudeconnect-io using SVN admin
+    commands (bypassing authz), so no global write access is needed.
+    """
     return f"""[/]
 {email} = rw
 
-[/claudeconnect/friend_requests]
-* = rw
+[/claudeconnect/with-claudeconnect-io]
 {email} = rw
 """
 
@@ -441,11 +450,17 @@ def send_friend_request():
     """
     Send a friend request to another user.
 
+    v2 format: Writes markdown file to claudeconnect/with-claudeconnect-io/
+    The server uses SVN admin commands (bypassing authz) to write to this
+    folder since it's owner-only writable for security.
+
     Expects:
         - Authorization header with Bearer id_token
-        - JSON body with "to" (target email) and optional "message"
+        - JSON body with "to" (target email)
 
-    This endpoint commits a friend request file to the target's repo.
+    Note: v2 removes the custom "message" field for security (prevents
+    prompt injection). Friend requests contain only sender email, date,
+    and status.
     """
     import tempfile
     from datetime import datetime
@@ -465,7 +480,6 @@ def send_friend_request():
     # Get target email from body
     data = request.get_json() or {}
     target_email = data.get("to", "").strip().lower()
-    message = data.get("message", "Hi! I'd like to connect our Claude instances.")
 
     if not target_email:
         return jsonify({"error": "Missing 'to' field"}), 400
@@ -480,35 +494,34 @@ def send_friend_request():
     if not target_repo_path.exists():
         return jsonify({"error": f"User {target_email} not found"}), 404
 
-    # Create friend request JSON
-    request_content = {
-        "from": sender_email,
-        "to": target_email,
-        "timestamp": datetime.utcnow().isoformat() + "Z",
-        "message": message
-    }
+    # Create friend request in v2 markdown format
+    timestamp = datetime.utcnow().isoformat() + "Z"
+    request_content = f"""# Friend Request from {sender_email}
 
-    # Commit to target's claudeconnect/friend_requests folder using svnmucc
-    request_json = json.dumps(request_content, indent=2)
+**From**: {sender_email}
+**Date**: {timestamp}
+**Status**: pending
+"""
 
     # Write to temp file
-    temp_file = tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False)
-    temp_file.write(request_json)
+    temp_file = tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False)
+    temp_file.write(request_content)
     temp_file.close()
 
     # Make temp file readable (default is 0600 which blocks svnmucc)
     os.chmod(temp_file.name, 0o644)
 
     try:
-        # Use svnmucc to put the file
+        # Use svnmucc to put the file in with-claudeconnect-io folder
         repo_url = f"file:///var/svn/repos/{target_repo_name}"
-        filename = f"{sender_email.replace('@', '-').replace('.', '-')}.json"
+        sanitized_sender = sender_email.replace("@", "-").replace(".", "-")
+        filename = f"friend-request-{sanitized_sender}.md"
 
         result = subprocess.run(
             [
                 "sudo", "-u", "www-data", "svnmucc",
                 "-U", repo_url,
-                "put", temp_file.name, f"claudeconnect/friend_requests/{filename}",
+                "put", temp_file.name, f"claudeconnect/with-claudeconnect-io/{filename}",
                 "-m", f"Friend request from {sender_email}"
             ],
             capture_output=True,
