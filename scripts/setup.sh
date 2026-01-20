@@ -90,6 +90,10 @@ mkdir -p /var/svn/repos
 chown www-data:www-data /var/svn/repos
 chmod 755 /var/svn/repos
 
+# Ephemeral test users tracking file (owned by ubuntu for Flask app)
+touch /var/svn/ephemeral-users.json
+chown ubuntu:ubuntu /var/svn/ephemeral-users.json
+
 # Landing page directory
 mkdir -p /var/www/claudeconnect
 chown www-data:www-data /var/www/claudeconnect
