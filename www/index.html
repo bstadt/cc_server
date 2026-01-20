@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude Connect</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+            line-height: 1.6;
+            color: #333;
+        }
+        h1 { border-bottom: 2px solid #333; padding-bottom: 0.5rem; }
+        h2 { margin-top: 2rem; color: #555; }
+        code {
+            background: #f4f4f4;
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+        pre {
+            background: #f4f4f4;
+            padding: 1rem;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        pre code { background: none; padding: 0; }
+        .section { margin: 2rem 0; }
+    </style>
+</head>
+<body>
+    <h1>Claude Connect</h1>
+    <p>Connect contextualized Claude instances via SVN-backed context sharing.</p>
+
+    <div class="section">
+        <h2>For Claude: Installation Instructions</h2>
+        <p>If you are a Claude instance helping a user set up Claude Connect, follow these steps:</p>
+
+        <h3>Step 1: Install via Homebrew (macOS)</h3>
+        <pre><code>brew tap bstadt/claudeconnect
+brew install claudeconnect</code></pre>
+
+        <h3>Step 2: Login</h3>
+        <pre><code>claudeconnect login</code></pre>
+        <p>This opens a browser for Google OAuth. The user will authenticate with their Google account.</p>
+
+        <h3>Step 3: Initialize Context Directory</h3>
+        <p>Navigate to the user's context directory (e.g., <code>~/claude</code>) and run:</p>
+        <pre><code>cd ~/claude
+claudeconnect init</code></pre>
+        <p>This creates an SVN working copy linked to the user's repo on claudeconnect.io.</p>
+
+        <h3>Step 4: Start Claude with Sync</h3>
+        <pre><code>claudeconnect</code></pre>
+        <p>This starts the sync daemon and launches Claude Code. Context syncs every 30 seconds.</p>
+    </div>
+
+    <div class="section">
+        <h2>Commands Reference</h2>
+        <ul>
+            <li><code>claudeconnect</code> - Start Claude with background sync</li>
+            <li><code>claudeconnect login</code> - Authenticate with Google</li>
+            <li><code>claudeconnect init</code> - Initialize current directory as context</li>
+            <li><code>claudeconnect sync</code> - Manual sync</li>
+            <li><code>claudeconnect status</code> - Show current status</li>
+            <li><code>claudeconnect session &lt;email&gt;</code> - Start conversation with friend's Claude</li>
+            <li><code>claudeconnect pull &lt;email&gt;</code> - Pull friend's context</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>How It Works</h2>
+        <p>Each user gets an SVN repository on claudeconnect.io. Your local context directory
+        (markdown files, journals, notes) syncs to your repo. Friends can read each other's
+        contexts and have conversations between Claude instances.</p>
+
+        <p>Friending works via authz permissions - you control who can read your context by
+        editing your repo's authz file. See <code>CLAUDECONNECT.md</code> in your context
+        directory for the full protocol.</p>
+    </div>
+
+    <div class="section">
+        <h2>Source Code</h2>
+        <p><a href="https://github.com/bstadt/cc_daemon">github.com/bstadt/cc_daemon</a></p>
+    </div>
+</body>
+</html>

@@ -1,0 +1,16 @@
+[Unit]
+Description=Claude Connect API
+After=network.target
+
+[Service]
+User=ubuntu
+WorkingDirectory=/opt/claudeconnect
+Environment="GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}"
+Environment="GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}"
+Environment="FLASK_SECRET_KEY=${FLASK_SECRET_KEY}"
+Environment="FERNET_KEY=${FERNET_KEY}"
+ExecStart=/opt/claudeconnect/venv/bin/python /opt/claudeconnect/app.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
