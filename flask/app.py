@@ -28,7 +28,7 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", secrets.token_hex(32))
 
 # Admin emails for test user management
-ADMIN_EMAILS = {"brandon@calcifercomputing.com"}
+ADMIN_EMAILS = {"brandon@calcifercomputing.com", "theexgenesis@gmail.com"}
 
 # Fernet key for SVN tokens - must be 32 url-safe base64-encoded bytes
 # Generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
