@@ -549,9 +549,23 @@ def send_friend_request():
     if not target_repo_path.exists():
         return jsonify({"error": f"User {target_email} not found"}), 404
 
+    # Get optional public key from request
+    public_key = data.get("public_key", "")
+
     # Create friend request in v2 markdown format
     timestamp = datetime.utcnow().isoformat() + "Z"
-    request_content = f"""# Friend Request from {sender_email}
+
+    # Build request content - include public key if provided (enables encryption)
+    if public_key and len(public_key) == 64:
+        request_content = f"""# Friend Request from {sender_email}
+
+**From**: {sender_email}
+**Date**: {timestamp}
+**Status**: pending
+**Public-Key**: {public_key}
+"""
+    else:
+        request_content = f"""# Friend Request from {sender_email}
 
 **From**: {sender_email}
 **Date**: {timestamp}
