@@ -549,28 +549,31 @@ def send_friend_request():
     if not target_repo_path.exists():
         return jsonify({"error": f"User {target_email} not found"}), 404
 
-    # Get optional public key from request
+    # Get optional public key and encrypted master key from request
     public_key = data.get("public_key", "")
+    encrypted_master_key = data.get("encrypted_master_key", "")
 
     # Create friend request in v2 markdown format
     timestamp = datetime.utcnow().isoformat() + "Z"
 
-    # Build request content - include public key if provided (enables encryption)
+    # Build request content with encryption keys if provided
+    request_lines = [
+        f"# Friend Request from {sender_email}",
+        "",
+        f"**From**: {sender_email}",
+        f"**Date**: {timestamp}",
+        f"**Status**: pending",
+    ]
+
+    # Include public key if provided (64 hex chars = 32 bytes)
     if public_key and len(public_key) == 64:
-        request_content = f"""# Friend Request from {sender_email}
+        request_lines.append(f"**Public-Key**: {public_key}")
 
-**From**: {sender_email}
-**Date**: {timestamp}
-**Status**: pending
-**Public-Key**: {public_key}
-"""
-    else:
-        request_content = f"""# Friend Request from {sender_email}
+    # Include encrypted master key if provided (160 hex chars = 80 bytes)
+    if encrypted_master_key and len(encrypted_master_key) == 160:
+        request_lines.append(f"**Encrypted-Master-Key**: {encrypted_master_key}")
 
-**From**: {sender_email}
-**Date**: {timestamp}
-**Status**: pending
-"""
+    request_content = "\n".join(request_lines) + "\n"
 
     # Write to temp file
     temp_file = tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False)
