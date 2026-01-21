@@ -475,6 +475,61 @@ def verify_svn_token():
         return jsonify({"valid": False, "error": str(e)}), 400
 
 
+@app.route("/api/public-key/<email>", methods=["GET"])
+def get_public_key(email: str):
+    """
+    Get a user's public key from their authz file.
+
+    No authentication required - public keys are meant to be public.
+    This enables key exchange during friend requests.
+
+    Returns:
+        JSON with public_key (hex) or error
+    """
+    import re
+
+    email = email.strip().lower()
+    if not email:
+        return jsonify({"error": "Missing email"}), 400
+
+    repo_name = email_to_repo_name(email)
+    repo_path = SVN_REPOS_DIR / repo_name
+
+    if not repo_path.exists():
+        return jsonify({"error": "User not found"}), 404
+
+    # Read authz from the repo using svnlook
+    try:
+        result = subprocess.run(
+            ["svnlook", "cat", str(repo_path), "authz"],
+            capture_output=True,
+            text=True,
+        )
+
+        if result.returncode != 0:
+            # Fall back to conf/authz if versioned authz doesn't exist
+            authz_path = repo_path / "conf" / "authz"
+            if authz_path.exists():
+                content = authz_path.read_text()
+            else:
+                return jsonify({"error": "No authz file found"}), 404
+        else:
+            content = result.stdout
+
+        # Extract public key from comment
+        match = re.search(r'^# Public-Key:\s*([a-fA-F0-9]{64})', content, re.MULTILINE)
+        if match:
+            return jsonify({
+                "email": email,
+                "public_key": match.group(1),
+            })
+        else:
+            return jsonify({"error": "No public key found in authz"}), 404
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/api/lookup-repo", methods=["GET"])
 def lookup_repo():
     """
